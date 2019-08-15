@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -76,6 +77,8 @@ hev_task_unref (HevTask *self)
 #ifdef ENABLE_STACK_OVERFLOW_DETECTION
     assert (*(unsigned int *)self->stack == STACK_OVERFLOW_DETECTION_TAG);
 #endif
+    if (self->reactor)
+        hev_task_io_reactor_destroy (self->reactor);
     hev_free (self->stack);
     hev_free (self);
 }
@@ -109,43 +112,91 @@ hev_task_get_priority (HevTask *self)
     return self->next_priority;
 }
 
-EXPORT_SYMBOL int
-hev_task_add_fd (HevTask *self, int fd, unsigned int events)
+static int
+hev_task_io_reactor_init (HevTask *self)
 {
     HevTaskIOReactor *reactor;
     HevTaskIOReactorSetupEvent revents[HEV_TASK_IO_REACTOR_EVENT_GEN_MAX];
-    int count;
+    int fd, count;
+
+    self->reactor = hev_task_io_reactor_new ();
+    if (!self->reactor)
+        return -1;
+
+    fd = hev_task_io_reactor_get_fd (self->reactor);
+    count = hev_task_io_reactor_setup_event_gen (revents, fd,
+                                                 HEV_TASK_IO_REACTOR_OP_ADD, 1,
+                                                 HEV_TASK_IO_REACTOR_EV_RO,
+                                                 &self->sched_entity);
 
     reactor = hev_task_system_get_context ()->reactor;
-    count = hev_task_io_reactor_setup_event_gen (
-        revents, fd, HEV_TASK_IO_REACTOR_OP_ADD, events, &self->sched_entity);
     return hev_task_io_reactor_setup (reactor, revents, count);
 }
 
 EXPORT_SYMBOL int
-hev_task_mod_fd (HevTask *self, int fd, unsigned int events)
+hev_task_add_fd (HevTask *self, int fd, unsigned int events, ...)
 {
-    HevTaskIOReactor *reactor;
     HevTaskIOReactorSetupEvent revents[HEV_TASK_IO_REACTOR_EVENT_GEN_MAX];
+    va_list ap;
     int count;
 
-    reactor = hev_task_system_get_context ()->reactor;
-    count = hev_task_io_reactor_setup_event_gen (
-        revents, fd, HEV_TASK_IO_REACTOR_OP_MOD, events, &self->sched_entity);
-    return hev_task_io_reactor_setup (reactor, revents, count);
+    if (!self->reactor) {
+        int res = hev_task_io_reactor_init (self);
+        if (res < 0)
+            return res;
+    }
+
+    va_start (ap, events);
+    count = hev_task_io_reactor_setup_event_gen (revents, fd,
+                                                 HEV_TASK_IO_REACTOR_OP_ADD, 1,
+                                                 events, va_arg (ap, void *));
+    va_end (ap);
+
+    return hev_task_io_reactor_setup (self->reactor, revents, count);
+}
+
+EXPORT_SYMBOL int
+hev_task_mod_fd (HevTask *self, int fd, unsigned int events, ...)
+{
+    HevTaskIOReactorSetupEvent revents[HEV_TASK_IO_REACTOR_EVENT_GEN_MAX];
+    va_list ap;
+    int count;
+
+    if (!self->reactor)
+        return -1;
+
+    va_start (ap, events);
+    count = hev_task_io_reactor_setup_event_gen (revents, fd,
+                                                 HEV_TASK_IO_REACTOR_OP_MOD, 1,
+                                                 events, va_arg (ap, void *));
+    va_end (ap);
+
+    return hev_task_io_reactor_setup (self->reactor, revents, count);
 }
 
 EXPORT_SYMBOL int
 hev_task_del_fd (HevTask *self, int fd)
 {
-    HevTaskIOReactor *reactor;
     HevTaskIOReactorSetupEvent revents[HEV_TASK_IO_REACTOR_EVENT_GEN_MAX];
     int count;
 
-    reactor = hev_task_system_get_context ()->reactor;
+    if (!self->reactor)
+        return -1;
+
     count = hev_task_io_reactor_setup_event_gen (
-        revents, fd, HEV_TASK_IO_REACTOR_OP_DEL, 0, NULL);
-    return hev_task_io_reactor_setup (reactor, revents, count);
+        revents, fd, HEV_TASK_IO_REACTOR_OP_DEL, 1, 0, NULL);
+    return hev_task_io_reactor_setup (self->reactor, revents, count);
+}
+
+EXPORT_SYMBOL int
+hev_task_get_fd_events (HevTask *self, HevTaskFDEvent *events, int count)
+{
+    HevTaskIOReactorWaitEvent *_events = (HevTaskIOReactorWaitEvent *)events;
+
+    if (!self->reactor)
+        return -1;
+
+    return hev_task_io_reactor_wait (self->reactor, _events, count, 0);
 }
 
 EXPORT_SYMBOL void

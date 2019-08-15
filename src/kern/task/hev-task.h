@@ -12,6 +12,8 @@
 
 #include <poll.h>
 
+#include "hev-task-fd-event.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -146,6 +148,7 @@ int hev_task_get_priority (HevTask *self);
  * @self: a #HevTask
  * @fd: a file descriptor
  * @events: a poll events. (e.g. POLLIN, POLLOUT)
+ * @...: data
  *
  * Add a file descriptor to I/O reactor of task system. The task system will
  * wake up the task when I/O events ready.
@@ -154,13 +157,14 @@ int hev_task_get_priority (HevTask *self);
  *
  * Since: 1.0
  */
-int hev_task_add_fd (HevTask *self, int fd, unsigned int events);
+int hev_task_add_fd (HevTask *self, int fd, unsigned int events, ...);
 
 /**
  * hev_task_mod_fd:
  * @self: a #HevTask
  * @fd: a file descriptor
  * @events: a poll events.
+ * @...: data
  *
  * Modify events of a file descriptor that added into I/O reactor of task
  * system.
@@ -169,7 +173,7 @@ int hev_task_add_fd (HevTask *self, int fd, unsigned int events);
  *
  * Since: 1.0
  */
-int hev_task_mod_fd (HevTask *self, int fd, unsigned int events);
+int hev_task_mod_fd (HevTask *self, int fd, unsigned int events, ...);
 
 /**
  * hev_task_mod_fd:
@@ -183,6 +187,20 @@ int hev_task_mod_fd (HevTask *self, int fd, unsigned int events);
  * Since: 1.0
  */
 int hev_task_del_fd (HevTask *self, int fd);
+
+/**
+ * hev_task_get_fd_events:
+ * @self: a #HevTask
+ * @events: an array of #HevTaskFDEvent
+ * @count: @events count
+ *
+ * Get emitted events of fd that in the task.
+ *
+ * Returns: The count of emitted events.
+ *
+ * Since: 4.8
+ */
+int hev_task_get_fd_events (HevTask *self, HevTaskFDEvent *events, int count);
 
 /**
  * hev_task_wakeup:

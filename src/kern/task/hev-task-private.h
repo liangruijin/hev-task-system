@@ -15,6 +15,7 @@
 
 #include "hev-task.h"
 #include "lib/rbtree/hev-rbtree.h"
+#include "kern/io/hev-task-io-reactor.h"
 
 typedef struct _HevTaskSchedEntity HevTaskSchedEntity;
 
@@ -28,6 +29,7 @@ struct _HevTask
     void *stack_top;
     HevTaskEntry entry;
     void *data;
+    HevTaskIOReactor *reactor;
 
     uint64_t sched_key;
     HevRBTreeNode sched_node;
