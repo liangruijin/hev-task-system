@@ -65,11 +65,11 @@ main (int argc, char *argv[])
 
     assert (hev_task_io_pipe_pipe (fds) == 0);
 
-    task = hev_task_new (-1);
+    task = hev_task_new_with_fd_set (-1);
     assert (task);
     hev_task_run (task, task1_entry, NULL);
 
-    task = hev_task_new (-1);
+    task = hev_task_new_with_fd_set (-1);
     assert (task);
     hev_task_run (task, task2_entry, NULL);
 
