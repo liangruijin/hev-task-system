@@ -32,7 +32,7 @@ hev_task_timer_new (void)
 
     reactor = hev_task_system_get_context ()->reactor;
     hev_task_io_reactor_setup_event_set (&event, self->fd,
-                                         HEV_TASK_IO_REACTOR_OP_ADD,
+                                         HEV_TASK_IO_REACTOR_OP_ADD, 1,
                                          HEV_TASK_IO_REACTOR_EV_RO,
                                          &self->base.sched_entity);
     if (hev_task_io_reactor_setup (reactor, &event, 1) == -1) {
