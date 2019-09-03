@@ -46,7 +46,7 @@ enum _HevTaskIOReactorOperation
 
 static inline void
 hev_task_io_reactor_setup_event_set (HevTaskIOReactorSetupEvent *event, int fd,
-                                     HevTaskIOReactorOperation op,
+                                     HevTaskIOReactorOperation op, int et,
                                      unsigned int events, void *data)
 {
     int action;
@@ -60,12 +60,12 @@ hev_task_io_reactor_setup_event_set (HevTaskIOReactorSetupEvent *event, int fd,
         action = EV_DELETE;
     }
 
-    EV_SET (event, fd, events, action | EV_CLEAR, 0, 0, data);
+    EV_SET (event, fd, events, action | (et ? EV_CLEAR : 0), 0, 0, data);
 }
 
 static inline int
 hev_task_io_reactor_setup_event_gen (HevTaskIOReactorSetupEvent *events, int fd,
-                                     HevTaskIOReactorOperation op,
+                                     HevTaskIOReactorOperation op, int et,
                                      unsigned int poll_events, void *data)
 {
     int count = 0;
@@ -73,17 +73,17 @@ hev_task_io_reactor_setup_event_gen (HevTaskIOReactorSetupEvent *events, int fd,
     if (op > HEV_TASK_IO_REACTOR_OP_ADD) {
         if (!(poll_events & POLLIN))
             hev_task_io_reactor_setup_event_set (&events[count++], fd,
-                                                 HEV_TASK_IO_REACTOR_OP_DEL,
+                                                 HEV_TASK_IO_REACTOR_OP_DEL, et,
                                                  HEV_TASK_IO_REACTOR_EV_RO,
                                                  data);
         if (!(poll_events & POLLOUT))
             hev_task_io_reactor_setup_event_set (&events[count++], fd,
-                                                 HEV_TASK_IO_REACTOR_OP_DEL,
+                                                 HEV_TASK_IO_REACTOR_OP_DEL, et,
                                                  HEV_TASK_IO_REACTOR_EV_WO,
                                                  data);
         if (!(poll_events & POLLERR))
             hev_task_io_reactor_setup_event_set (&events[count++], fd,
-                                                 HEV_TASK_IO_REACTOR_OP_DEL,
+                                                 HEV_TASK_IO_REACTOR_OP_DEL, et,
                                                  HEV_TASK_IO_REACTOR_EV_ER,
                                                  data);
         if (op == HEV_TASK_IO_REACTOR_OP_DEL)
@@ -91,13 +91,13 @@ hev_task_io_reactor_setup_event_gen (HevTaskIOReactorSetupEvent *events, int fd,
     }
 
     if (poll_events & POLLIN)
-        hev_task_io_reactor_setup_event_set (&events[count++], fd, op,
+        hev_task_io_reactor_setup_event_set (&events[count++], fd, op, et,
                                              HEV_TASK_IO_REACTOR_EV_RO, data);
     if (poll_events & POLLOUT)
-        hev_task_io_reactor_setup_event_set (&events[count++], fd, op,
+        hev_task_io_reactor_setup_event_set (&events[count++], fd, op, et,
                                              HEV_TASK_IO_REACTOR_EV_WO, data);
     if (poll_events & POLLERR)
-        hev_task_io_reactor_setup_event_set (&events[count++], fd, op,
+        hev_task_io_reactor_setup_event_set (&events[count++], fd, op, et,
                                              HEV_TASK_IO_REACTOR_EV_ER, data);
 
     return count;
