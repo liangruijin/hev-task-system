@@ -38,6 +38,7 @@ retry:
         assert (count++ == 0);
         goto retry;
     }
+    assert (hev_task_sleep (50) == 0);
     assert (hev_task_del_fd (task, fds[0]) == 0);
     assert (hev_task_del_fd (task, 0) == 0);
 }
@@ -55,6 +56,7 @@ task2_entry (void *data)
     assert (hev_task_get_fd_events (task, &events, 1) == 1);
     assert (hev_task_fd_event_events (&events) == POLLOUT);
     assert (hev_task_fd_event_data (&events) == &val);
+    assert (hev_task_io_write (fds[1], &val, sizeof (val), NULL, NULL) > 0);
     assert (hev_task_io_write (fds[1], &val, sizeof (val), NULL, NULL) > 0);
     assert (hev_task_del_fd (task, fds[1]) == 0);
     assert (hev_task_del_fd (task, 0) == 0);
