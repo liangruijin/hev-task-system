@@ -42,18 +42,18 @@ struct _HevTaskIOReactorSetupEvent
 
 static inline void
 hev_task_io_reactor_setup_event_set (HevTaskIOReactorSetupEvent *event, int fd,
-                                     HevTaskIOReactorOperation op,
+                                     HevTaskIOReactorOperation op, int et,
                                      unsigned int events, void *data)
 {
     event->op = op;
     event->fd = fd;
-    event->event.events = events | EPOLLET;
+    event->event.events = events | (et ? EPOLLET : 0);
     event->event.data.ptr = data;
 }
 
 static inline int
 hev_task_io_reactor_setup_event_gen (HevTaskIOReactorSetupEvent *events, int fd,
-                                     HevTaskIOReactorOperation op,
+                                     HevTaskIOReactorOperation op, int et,
                                      unsigned int poll_events, void *data)
 {
     HevTaskIOReactorEvents reactor_events = 0;
@@ -65,7 +65,8 @@ hev_task_io_reactor_setup_event_gen (HevTaskIOReactorSetupEvent *events, int fd,
     if (poll_events & POLLERR)
         reactor_events |= HEV_TASK_IO_REACTOR_EV_ER;
 
-    hev_task_io_reactor_setup_event_set (events, fd, op, reactor_events, data);
+    hev_task_io_reactor_setup_event_set (events, fd, op, et, reactor_events,
+                                         data);
 
     return 1;
 }
